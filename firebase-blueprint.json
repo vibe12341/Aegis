@@ -1,0 +1,173 @@
+{
+  "entities": {
+    "TelemetryEvent": {
+      "title": "TelemetryEvent",
+      "description": "Real-time SOC telemetry event emitted after prompt scanning or decoy containment.",
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "description": "Unique identifier for the telemetry event",
+          "maxLength": 128
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO 8601 creation timestamp",
+          "maxLength": 64
+        },
+        "client_ip": {
+          "type": "string",
+          "description": "Client IP address or simulated endpoint",
+          "maxLength": 64
+        },
+        "prompt_snippet": {
+          "type": "string",
+          "description": "Sanitized preview snippet of the analyzed prompt",
+          "maxLength": 512
+        },
+        "risk_score": {
+          "type": "number",
+          "description": "Calculated risk score from 0 to 100"
+        },
+        "risk_tier": {
+          "type": "string",
+          "description": "Threat tier classification",
+          "enum": ["SAFE", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+        },
+        "action_taken": {
+          "type": "string",
+          "description": "Security gateway mitigation verdict",
+          "maxLength": 64
+        },
+        "attack_category": {
+          "type": "string",
+          "description": "OWASP or taxonomy classification of the attack",
+          "maxLength": 128
+        },
+        "decoy_deployed": {
+          "type": "boolean",
+          "description": "Whether an adversarial decoy honeypot was triggered"
+        },
+        "scan_latency_ms": {
+          "type": "number",
+          "description": "Ingestion engine inspection latency in milliseconds"
+        },
+        "created_by": {
+          "type": "string",
+          "description": "Firebase Auth UID of the logging agent or user",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "event_id",
+        "timestamp",
+        "prompt_snippet",
+        "risk_score",
+        "risk_tier",
+        "action_taken",
+        "decoy_deployed",
+        "scan_latency_ms"
+      ]
+    },
+    "ScannedPrompt": {
+      "title": "ScannedPrompt",
+      "description": "Stored benchmark prompt analysis and audit record.",
+      "type": "object",
+      "properties": {
+        "prompt_id": {
+          "type": "string",
+          "description": "Unique prompt identifier",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable label for the payload benchmark",
+          "maxLength": 128
+        },
+        "prompt_text": {
+          "type": "string",
+          "description": "Full text of the prompt vector",
+          "maxLength": 4096
+        },
+        "risk_score": {
+          "type": "number",
+          "description": "Risk score assigned by heuristic engine"
+        },
+        "risk_tier": {
+          "type": "string",
+          "description": "Calculated risk tier",
+          "enum": ["SAFE", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+        },
+        "is_hostile": {
+          "type": "boolean",
+          "description": "Whether the vector breaches security thresholds"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 64
+        },
+        "created_by": {
+          "type": "string",
+          "description": "UID of authoring user",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "prompt_id",
+        "prompt_text",
+        "risk_score",
+        "risk_tier",
+        "is_hostile",
+        "created_at"
+      ]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User security analyst profile and role assignment.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase user ID",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 256
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Analyst display name",
+          "maxLength": 128
+        },
+        "role": {
+          "type": "string",
+          "description": "Access level role",
+          "enum": ["analyst", "auditor", "admin"]
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Profile registration timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["uid", "email", "role", "created_at"]
+    }
+  },
+  "firestore": {
+    "/telemetry_events/{eventId}": {
+      "schema": "TelemetryEvent",
+      "description": "Auditable log of ingestion scans, threat scores, and honeypot activations."
+    },
+    "/scanned_prompts/{promptId}": {
+      "schema": "ScannedPrompt",
+      "description": "Persisted benchmark prompt runs and security evaluations."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Registered security analyst accounts and permission roles."
+    }
+  }
+}

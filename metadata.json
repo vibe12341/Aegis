@@ -1,0 +1,6 @@
+{
+  "name": "AegisAI - LLM Security Wrapper",
+  "description": "LLM security wrapper defending against prompt injection (OWASP LLM01) with decoy sandboxing, output verification, and explainable AI telemetry.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

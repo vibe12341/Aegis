@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------
+    // GLOBAL REUSABLE HELPERS
+    // ----------------------------------------------------
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // ----------------------------------------------------
+    // ENTITY VALIDATION HELPERS
+    // ----------------------------------------------------
+    function isValidTelemetryEvent(data) {
+      return data.keys().hasAll(['event_id', 'timestamp', 'prompt_snippet', 'risk_score', 'risk_tier', 'action_taken', 'decoy_deployed', 'scan_latency_ms']) &&
+        data.event_id is string && data.event_id.size() <= 128 &&
+        data.timestamp is string && data.timestamp.size() <= 64 &&
+        data.prompt_snippet is string && data.prompt_snippet.size() <= 512 &&
+        data.risk_score is number && data.risk_score >= 0 && data.risk_score <= 100 &&
+        data.risk_tier in ['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] &&
+        data.action_taken is string && data.action_taken.size() <= 64 &&
+        data.decoy_deployed is bool &&
+        data.scan_latency_ms is number && data.scan_latency_ms >= 0 &&
+        (!('attack_category' in data) || (data.attack_category == null || (data.attack_category is string && data.attack_category.size() <= 128))) &&
+        (!('created_by' in data) || (data.created_by is string && data.created_by.size() <= 128 && data.created_by == request.auth.uid));
+    }
+
+    function isValidScannedPrompt(data) {
+      return data.keys().hasAll(['prompt_id', 'prompt_text', 'risk_score', 'risk_tier', 'is_hostile', 'created_at']) &&
+        data.prompt_id is string && data.prompt_id.size() <= 128 &&
+        data.prompt_text is string && data.prompt_text.size() <= 4096 &&
+        data.risk_score is number && data.risk_score >= 0 && data.risk_score <= 100 &&
+        data.risk_tier in ['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] &&
+        data.is_hostile is bool &&
+        data.created_at is string && data.created_at.size() <= 64 &&
+        (!('title' in data) || (data.title is string && data.title.size() <= 128)) &&
+        (!('created_by' in data) || (data.created_by is string && data.created_by.size() <= 128 && data.created_by == request.auth.uid));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'created_at']) &&
+        data.uid is string && data.uid.size() <= 128 && data.uid == request.auth.uid &&
+        data.email is string && data.email.size() <= 256 &&
+        data.role in ['analyst', 'auditor', 'admin'] &&
+        data.created_at is string && data.created_at.size() <= 64 &&
+        (!('display_name' in data) || (data.display_name is string && data.display_name.size() <= 128));
+    }
+
+    // ----------------------------------------------------
+    // DEFAULT DENY CATCH-ALL
+    // ----------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ----------------------------------------------------
+    // TELEMETRY EVENTS COLLECTION
+    // ----------------------------------------------------
+    match /telemetry_events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(eventId) && isValidTelemetryEvent(incoming());
+      // Immutable log: no updates or deletions allowed
+      allow update, delete: if false;
+    }
+
+    // ----------------------------------------------------
+    // SCANNED PROMPTS COLLECTION
+    // ----------------------------------------------------
+    match /scanned_prompts/{promptId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(promptId) && isValidScannedPrompt(incoming());
+      allow update: if isSignedIn() && isValidId(promptId) && isValidScannedPrompt(incoming()) &&
+        existing().created_by == request.auth.uid && incoming().created_by == request.auth.uid;
+      allow delete: if isSignedIn() && isValidId(promptId) && existing().created_by == request.auth.uid;
+    }
+
+    // ----------------------------------------------------
+    // USERS COLLECTION
+    // ----------------------------------------------------
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming()) && incoming().role == 'analyst';
+      allow update: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming()) && incoming().role == existing().role;
+      allow delete: if false;
+    }
+  }
+}
