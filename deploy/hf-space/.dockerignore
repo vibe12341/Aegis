@@ -1,0 +1,8 @@
+node_modules
+dist
+.modelcache
+.git
+.gitignore
+*.tsbuildinfo
+test-upload.pdf
+.freebuff

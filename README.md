@@ -36,9 +36,24 @@ First visit to `/guard` triggers a one-time ~72 MB model download into `.modelca
 
 ## Deploy (Render)
 
-The repo root contains `render.yaml` (Blueprint). In the Render dashboard:
-**New → Blueprint**, point it at this repo, and Render reads the config —
-free web service, `npm ci && npm run build`, starts `npm start`, and honors
-the platform-injected `PORT`. The model downloads into a local disk on first
-boot; attach a persistent disk at `/opt/aegis/.modelcache` to skip re-downloads
-after redeploys.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/vibe12341/Aegis)
+
+The button creates a service straight from `render.yaml` (Blueprint): free web
+service, `npm ci && npm run build`, starts `npm start`, and honors the
+platform-injected `PORT`. Note that Render may ask new accounts to verify a
+payment method before free services can deploy.
+
+The model downloads into `<repo>/.modelcache/` on first boot; the free plan has
+no persistent disks, so it re-downloads after each restart or spin-up.
+
+## Deploy (Hugging Face Space — free, no card)
+
+Free CPU Spaces have plenty of RAM for the 22M model and pull it from the HF
+Hub in under a minute.
+
+1. Create a Space at https://huggingface.co/new-space — SDK: **Docker**, blank.
+2. `huggingface-cli login` (once).
+3. `bash deploy/hf-space/deploy.sh <hf-username> [space-name]`
+
+The script assembles the Space repo (tracked files + `deploy/hf-space/Dockerfile`)
+and pushes it; the Space builds and serves on port 7860 automatically.
