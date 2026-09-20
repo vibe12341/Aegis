@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: aegis
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/guard-status
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
